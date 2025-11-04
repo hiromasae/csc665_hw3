@@ -155,37 +155,33 @@ def topo_order(net: BayesNet):
 def joint_probability(net: BayesNet, assignment: dict) -> float:
     """Compute and return the joint probability of a COMPLETE assignment.
 
-    Args:
-        net: BayesNet
-        assignment: dict mapping every variable -> one of its domain values.
-
-    Returns:
-        Product over variables X of P(X = assignment[X] | Parents(X) = assignment[Parents(X)]).
+    Product over variables X of P(X = assignment[X] | Parents(X) = assignment[Parents(X)]).
     """
-    raise NotImplementedError
+    # sanity: must have a value for every variable
+    missing = [v for v in net.order if v not in assignment]
+    if missing:
+        raise ValueError(f"joint_probability needs a complete assignment; missing: {missing}")
+
+    p = 1.0
+    # topological order so parents come before children (though net.prob only reads from assignment)
+    for var in net.order:
+        val = assignment[var]
+        p *= net.prob(var, val, assignment)
+    return p
 
 
 def update(distribution: dict, value, p: float) -> None:
-    """Add probability mass 'p' into the running distribution for a query variable.
+    """Add probability mass 'p' into the running distribution for a query variable."""
+    distribution[value] = distribution.get(value, 0.0) + p
 
-    Args:
-        distribution: dict value -> mass
-        value: a domain value of the query variable
-        p: nonnegative probability mass to add
-    """
-    raise NotImplementedError
 
 def normalize(distribution: dict) -> None:
-    """Normalize a one-dimensional distribution so its values sum to 1.
-
-    Args:
-        distribution: dict value -> mass (in-place update)
-
-    Behavior:
-        - If the sum is 0, leave the distribution unchanged.
-        - Otherwise, divide each mass by the total.
-    """
-    raise NotImplementedError
+    """Normalize a one-dimensional distribution so its values sum to 1 (in place)."""
+    total = sum(distribution.values())
+    if total > 0.0:
+        for k in list(distribution.keys()):
+            distribution[k] /= total
+    # if total == 0, leave it as-is per spec
 
 
 # --------------------------
